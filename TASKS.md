@@ -24,11 +24,12 @@ the repo's module boundaries. Check items off as they're committed — see
 
 ## Milestone 2 — Laya local server + client (build first: local, no rate limits)
 
-- [ ] `server/requirements.txt`, `server/.python-version`
-- [ ] `server/laya_server.py` — FastAPI wrapper around `laya` (typed-decisions checkpoint), `/decide` + `/health`
-- [ ] `src/decisions/types.ts` — shared `DecisionResult`/`DecisionClient`/etc. types
-- [ ] `src/decisions/layaClient.ts` — browser client for the local Laya server
+- [x] `server/requirements.txt`, `server/.python-version`, `server/pyproject.toml` (ruff config)
+- [x] `server/laya_server.py` — FastAPI wrapper around `laya` (typed-decisions checkpoint), `/decide` + `/health`, CORS for the Vite origin
+- [x] `src/decisions/types.ts` — shared `DecisionResult`/`DecisionClient`/etc. types (committed earlier)
+- [x] `src/decisions/layaClient.ts` — browser client for the local Laya server
 - [ ] **STOP for confirmation**: first successful real `/decide` round trip against a running local Laya server
+      (requires `pip install -r server/requirements.txt`, which downloads the ~800MB checkpoint — not run yet)
 
 ## Milestone 3 — Jev client (real hosted API)
 
