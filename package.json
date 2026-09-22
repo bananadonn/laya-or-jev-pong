@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "concurrently -n web,laya -c blue,magenta \"vite\" \"npm run dev:laya\"",
     "dev:web": "vite",
-    "dev:laya": "cd server && python -m uvicorn laya_server:app --port ${LAYA_PORT:-8787} --reload",
+    "dev:laya": "node scripts/dev-laya.mjs",
     "build": "tsc --noEmit && tsc --noEmit -p tsconfig.node.json && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.node.json",

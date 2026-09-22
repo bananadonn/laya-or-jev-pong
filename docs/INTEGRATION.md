@@ -58,6 +58,10 @@ npm run dev:web    # vite only
 npm run dev:laya   # uvicorn only
 ```
 
+`dev:laya` runs through `scripts/dev-laya.mjs`, which locates `server/.venv`'s
+Python directly (Windows or POSIX) — you don't need to activate the venv in your
+shell first.
+
 Open the printed `localhost:5173` URL. Both HUD panels should say "connected" within
 a few seconds.
 
