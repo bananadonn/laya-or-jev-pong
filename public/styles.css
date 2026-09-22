@@ -17,8 +17,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family:
-    ui-monospace, "SF Mono", "Cascadia Code", Consolas, monospace;
+  font-family: ui-monospace, "SF Mono", "Cascadia Code", Consolas, monospace;
 }
 
 header {

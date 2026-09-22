@@ -112,7 +112,13 @@ export class Renderer {
 
     ctx.fillStyle = COLORS.ball;
     ctx.beginPath();
-    ctx.arc(frame.ball.x * scaleX, frame.ball.y * scaleY, frame.ball.radius * scaleX, 0, Math.PI * 2);
+    ctx.arc(
+      frame.ball.x * scaleX,
+      frame.ball.y * scaleY,
+      frame.ball.radius * scaleX,
+      0,
+      Math.PI * 2,
+    );
     ctx.fill();
   }
 
@@ -140,7 +146,9 @@ export class Renderer {
 
   private updateHud(side: "left" | "right", data: HudSideData): void {
     const el = this.sideEls[side];
-    el.status.textContent = data.connected ? "connected" : `disconnected — ${data.connectionDetail}`;
+    el.status.textContent = data.connected
+      ? "connected"
+      : `disconnected — ${data.connectionDetail}`;
     el.status.classList.toggle("connected", data.connected);
     el.status.classList.toggle("disconnected", !data.connected);
 
