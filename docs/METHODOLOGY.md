@@ -25,13 +25,18 @@ current tick's state.
 ## The safety shield (`src/decisions/shield.ts`)
 
 Each paddle runs a continuous cycle: ask its client for a decision, race it against an
-**act-deadline** (`DEFAULT_ACT_DEADLINE_MS`, 400ms by default — see
+**act-deadline** (`DEFAULT_ACT_DEADLINE_MS`, 1000ms by default — see
 `docs/INTEGRATION.md` for why that number and how hardware changes what's realistic).
 
 - **Assisted (default):** if the deadline passes with no answer, or the client
   reports an error, the shield substitutes the deterministic planner's move and logs
-  it as a **shield intervention** — never as a model decision. The paddle always
-  moves; it just isn't always the model choosing.
+  it as a **shield intervention** — never as a model decision. Critically, this
+  fallback is _live_: while the shield is covering for a model that hasn't answered
+  yet, the committed move tracks the planner's judgment of the _current_ tick, not a
+  stale snapshot from whenever the last decision cycle happened to resolve — the
+  planner is a free local computation, so there's no reason it should lag behind the
+  physics loop just because the network/inference call it's covering for does. The
+  paddle always moves; it just isn't always the model choosing.
 - **Unassisted** (per-side toggle in the UI): a late/failed decision gets **no**
   fallback — the paddle holds its last committed move until the model actually
   answers. This exposes a model's raw, unprotected latency: if it's consistently
@@ -87,3 +92,10 @@ latency produces — without the shield's fallback smoothing it over.
 - The full per-tick decision history is available via `DecisionLog#exportJSON()`
   (`src/stats/log.ts`) for anyone who wants to re-derive these numbers independently
   rather than trust the live HUD.
+- `stay` is a real, fully offered criterion in every request to both models (verified
+  directly against the live Jev API: it answers `stay` with 90%+ confidence when the
+  ball is already level with the paddle). If it looks rare during a live match, that's
+  a property of live gameplay, not a missing option — a paddle that's continuously
+  tracking the ball rarely sits at an exact standstill relative to it for long, so by
+  the time a fresh decision is asked for, `stay` is less often the top answer. Query
+  the API directly with a near-zero ball/paddle delta if you want to see it land.

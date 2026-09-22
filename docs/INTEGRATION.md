@@ -95,15 +95,21 @@ app entry HTML at the project root; `public/` is for static assets served verbat
 
 **Laya inference speed is extremely hardware-dependent.** Laya's own docs cite ~40ms
 on a Tesla T4 GPU. On CPU-only hardware (no MLX, no CUDA), a single real `/decide`
-call was measured at **~880-930ms** during this build — roughly 20x slower. The
-default `DEFAULT_ACT_DEADLINE_MS` (400ms, see `src/decisions/shield.ts`) is tuned for
-Jev's documented 70-500ms hosted latency, not CPU-bound Laya. On CPU-only hardware,
-expect Laya's HUD panel to show mostly shield interventions with "—" for
-confidence/latency/agreement — that's an honest result (§2: don't fabricate numbers),
-not a bug. If you have GPU or MLX hardware, real Laya decisions should land far more
-often; if you're on CPU only, either accept the mostly-shield behavior as the real
-finding, or raise the act-deadline (see `Shield`'s constructor / `setActDeadlineMs`)
-to see Laya's raw accuracy independent of its local hardware's raw speed.
+call was measured at a consistent **~900-970ms** during this build — roughly 20x
+slower. `DEFAULT_ACT_DEADLINE_MS` (`src/decisions/shield.ts`) is 1000ms specifically
+so CPU-only Laya has a real chance to land an answer — an earlier 400ms default
+wasn't a calibration choice, it was a bug: 900ms literally cannot fit inside a 400ms
+window on any run, so it made Laya's real decisions unobservable rather than merely
+rare. At 1000ms, expect Laya's HUD panel to show real decisions landing often (not
+always — it's still close on CPU) with honestly very low confidence (single-digit to
+low-double-digit %) — the `typed-decisions` checkpoint wasn't fine-tuned on anything
+Pong-shaped, and its temperature is clamped in a way that further distorts confidence
+on out-of-distribution inputs (a warning to this effect prints at server startup).
+Low confidence here is real, measured uncertainty (§2: don't fabricate numbers), not
+a bug. If you have GPU or MLX hardware, Laya should be fast enough that the deadline
+barely matters. If you're on CPU and want to see the shield intervene more, lower the
+act-deadline (`Shield`'s constructor / `setActDeadlineMs`) — but doing so will make
+Laya's real decisions rare again, by the same math.
 
 **The reference `laya_server.py` doesn't cancel in-flight inference.** `agent.predict()`
 is a blocking call with no cooperative cancellation; if the shield's client-side abort

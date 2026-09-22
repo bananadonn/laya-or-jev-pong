@@ -9,18 +9,29 @@ import type {
 } from "./types";
 
 /**
- * 400ms: loose enough that Jev's real hosted latency (70-500ms per
- * TypeSafe's own docs) lands inside it often, not just at the lucky edge -
- * a tighter deadline (150ms, tried during development) meant the shield
- * intervened for both sides almost every single cycle, which technically
- * "works" but defeats the point of a demo meant to show real decisions
- * landing (CLAUDE.md §8). Still tight enough to matter: CPU-only Laya
- * inference measured ~900ms locally during development, so it will still
- * miss this deadline often on modest hardware - which is itself a real,
- * honest finding about the speed/accuracy tradeoff this benchmark exists
- * to surface, not something to hide by inflating the deadline further.
+ * 1000ms. Earlier this was 400ms on the (wrong) assumption that a tighter
+ * deadline just meant "more shield interventions, still honest." It
+ * doesn't - CPU-only Laya inference measured a consistent ~900-940ms per
+ * call, so 400ms didn't make Laya's real answers *rare*, it made them
+ * *mathematically impossible*: 900ms never fits inside a 400ms window, on
+ * any run, ever. That's not the speed/accuracy tradeoff this benchmark
+ * exists to show - it's a config value that silently made one whole side
+ * of the comparison unobservable.
+ *
+ * Since getMove() now tracks the ball live while "covering" (see the
+ * `covering` field below) regardless of how long the deadline is, the
+ * deadline no longer controls how smooth gameplay looks - only how often a
+ * *real* decision gets a chance to land before the shield covers for it.
+ * That means it's safe to set this loose enough for typical hardware:
+ * ~150-500ms measured for Jev's real hosted latency, ~900-940ms for
+ * CPU-only Laya. 1000ms gives Jev room to basically always land a real
+ * answer, and Laya just enough headroom to land one often (not always -
+ * still genuinely tight on CPU, which is itself the honest finding: local
+ * inference is close but not free of real latency cost without GPU/MLX
+ * acceleration). Lower this back down if you want to see interventions
+ * happen more, or raise it further on slower hardware.
  */
-export const DEFAULT_ACT_DEADLINE_MS = 400;
+export const DEFAULT_ACT_DEADLINE_MS = 1000;
 
 export interface ShieldEvent {
   source: Source;
