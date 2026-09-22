@@ -25,6 +25,9 @@ npm run dev
 Full setup (including Windows venv activation, CORS, and troubleshooting) is in
 [`docs/INTEGRATION.md`](docs/INTEGRATION.md).
 
+No CUDA/MLX GPU locally? Laya runs ~20x slower on CPU — `colab/laya_gpu_server.ipynb`
+runs it on a free Colab GPU instead; see INTEGRATION.md's Colab section.
+
 ## Docs
 
 - [`docs/PONG_DEMO.md`](docs/PONG_DEMO.md) — what the UI shows and how to read it
