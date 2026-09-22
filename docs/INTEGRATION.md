@@ -96,25 +96,22 @@ app entry HTML at the project root; `public/` is for static assets served verbat
 **Laya inference speed is extremely hardware-dependent.** Laya's own docs cite ~40ms
 on a Tesla T4 GPU. On CPU-only hardware (no MLX, no CUDA), a single real `/decide`
 call was measured at a consistent **~900-970ms** during this build — roughly 20x
-slower. `DEFAULT_ACT_DEADLINE_MS` (`src/decisions/shield.ts`) is 1000ms specifically
-so CPU-only Laya has a real chance to land an answer — an earlier 400ms default
-wasn't a calibration choice, it was a bug: 900ms literally cannot fit inside a 400ms
-window on any run, so it made Laya's real decisions unobservable rather than merely
-rare. At 1000ms, expect Laya's HUD panel to show real decisions landing often (not
-always — it's still close on CPU) with honestly very low confidence (single-digit to
-low-double-digit %) — the `typed-decisions` checkpoint wasn't fine-tuned on anything
-Pong-shaped, and its temperature is clamped in a way that further distorts confidence
-on out-of-distribution inputs (a warning to this effect prints at server startup).
-Low confidence here is real, measured uncertainty (§2: don't fabricate numbers), not
-a bug. If you have GPU or MLX hardware, Laya should be fast enough that the deadline
-barely matters. If you're on CPU and want to see the shield intervene more, lower the
-act-deadline (`Shield`'s constructor / `setActDeadlineMs`) — but doing so will make
-Laya's real decisions rare again, by the same math. If you don't have compatible GPU
-hardware locally, see "Running Laya on a real GPU (Colab)" below — that's a genuine
-~20x win, unlike thread-count tuning (tried and measured: forcing all logical cores
-via `torch.set_num_threads()` looked like a ~40% win on one lucky sample pair, but
-didn't hold up under a proper randomized, repeated comparison on a 6-core/12-thread
-Ryzen 5 2600 — not worth adding).
+slower. The act-deadline is no longer a fixed constant (see `docs/METHODOLOGY.md`'s
+safety shield section) — it's the ball's real time-to-arrival for the current rally
+leg, so on a short leg even a fast model can get squeezed, and on a long one a slow
+one gets real breathing room. Expect Laya's HUD panel to show real decisions landing
+often but not always on CPU-only hardware, with honestly very low confidence
+(single-digit to low-double-digit %) — the `typed-decisions` checkpoint wasn't
+fine-tuned on anything Pong-shaped, and its temperature is clamped in a way that
+further distorts confidence on out-of-distribution inputs (a warning to this effect
+prints at server startup). Low confidence here is real, measured uncertainty (§2:
+don't fabricate numbers), not a bug. If you have GPU or MLX hardware, Laya should be
+fast enough that leg length barely matters. If you don't have compatible GPU hardware
+locally, see "Running Laya on a real GPU (Colab)" below — that's a genuine ~20x win,
+unlike thread-count tuning (tried and measured: forcing all logical cores via
+`torch.set_num_threads()` looked like a ~40% win on one lucky sample pair, but didn't
+hold up under a proper randomized, repeated comparison on a 6-core/12-thread Ryzen 5
+2600 — not worth adding).
 
 **The reference `laya_server.py` doesn't cancel in-flight inference.** `agent.predict()`
 is a blocking call with no cooperative cancellation; if the shield's client-side abort

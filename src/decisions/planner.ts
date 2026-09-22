@@ -1,3 +1,4 @@
+import { projectBallY } from "../game/trajectory";
 import type { Move, PongState } from "./types";
 
 /**
@@ -19,35 +20,9 @@ import type { Move, PongState } from "./types";
  */
 export function plannerMove(state: PongState, deadZone = 4): Move {
   const { ball, paddle, court } = state;
-  const approaching = ball.vx < 0 && ball.x > paddle.x;
-
-  const targetY = approaching
-    ? projectArrivalY(ball, paddle.x, court.height)
-    : ball.y + ball.vy * NEAR_TERM_PROJECTION_SECONDS;
-
+  const targetY = projectBallY(ball, paddle.x, court.height);
   const delta = targetY - paddle.y;
+
   if (Math.abs(delta) <= deadZone) return "stay";
   return delta < 0 ? "up" : "down";
 }
-
-/**
- * Where the ball will cross `paddleX`, accounting for however many times
- * it reflects off the top/bottom walls between now and then. Unfolds the
- * straight-line projection past the court's edges and folds it back in
- * with a triangle wave - equivalent to simulating each bounce, but O(1).
- */
-function projectArrivalY(ball: PongState["ball"], paddleX: number, courtHeight: number): number {
-  const timeToReach = (ball.x - paddleX) / -ball.vx;
-  const unfolded = ball.y + ball.vy * timeToReach;
-  return reflectIntoRange(unfolded, courtHeight);
-}
-
-function reflectIntoRange(y: number, max: number): number {
-  const period = 2 * max;
-  let folded = y % period;
-  if (folded < 0) folded += period;
-  return folded <= max ? folded : period - folded;
-}
-
-/** Used only when the ball isn't approaching (moving away, or already past) - just smooths reactive jitter. */
-const NEAR_TERM_PROJECTION_SECONDS = 0.05;

@@ -107,23 +107,45 @@ match is supposed to show.
 
 ## The safety shield (`src/decisions/shield.ts`)
 
-Each paddle runs a continuous cycle: ask its client for a decision, race it against an
-**act-deadline** (`DEFAULT_ACT_DEADLINE_MS`, 1000ms by default — see
-`docs/INTEGRATION.md` for why that number and how hardware changes what's realistic).
+**Asks once per rally leg, not once per tick.** A leg begins the instant the ball
+starts heading toward a given paddle (right after the opponent's hit, or a new serve),
+and the shield fires exactly one `decide()` request for it. Between hits, the ball's
+trajectory is fully determined by physics (position + velocity, including wall
+bounces), so re-asking the same question every ~150ms while nothing new has happened
+is redundant network/inference cost, not new information. This was a deliberate
+redesign (see git history) from an earlier version that polled continuously against a
+fixed constant deadline - that constant had to be guessed without knowing either
+model's real latency, and re-committing a fresh (often stale) directional answer every
+cycle caused visible overshoot as the paddle chased information that was already out
+of date by the time it landed.
 
-- **Assisted (default):** if the deadline passes with no answer, or the client
-  reports an error, the shield substitutes the deterministic planner's move and logs
-  it as a **shield intervention** — never as a model decision. Critically, this
-  fallback is _live_: while the shield is covering for a model that hasn't answered
-  yet, the committed move tracks the planner's judgment of the _current_ tick, not a
-  stale snapshot from whenever the last decision cycle happened to resolve — the
-  planner is a free local computation, so there's no reason it should lag behind the
-  physics loop just because the network/inference call it's covering for does. The
-  paddle always moves; it just isn't always the model choosing.
-- **Unassisted** (per-side toggle in the UI): a late/failed decision gets **no**
-  fallback — the paddle holds its last committed move until the model actually
-  answers. This exposes a model's raw, unprotected latency: if it's consistently
-  slow, the paddle visibly lags or stalls, with nothing masking that fact.
+**The act-deadline is the ball's actual time-to-arrival, computed fresh per leg** -
+not an arbitrary constant. If a leg starts with the ball 400px away at 300px/s, the
+model has ~1.3s to answer; if it starts 100px away, it has ~0.33s. A slow model
+naturally gets squeezed hardest on short legs and has the most room on long ones,
+which is a more honest test than a single fixed number could ever be.
+
+**The model's answer is executed literally - direction and all.** If it says "up",
+the paddle moves up for the rest of the leg, full stop, even if that's the wrong
+call and the paddle ends up pinned against a wall. The only thing physics decides is
+_when to stop_: once the paddle reaches the ball's live-projected arrival y (which
+only changes if the ball bounces off a wall), it holds there rather than overshooting
+past a correct answer. Physics never overrides _which way_ to go - only a genuinely
+correct direction ever reaches alignment and gets to stop early; a wrong one just
+runs out of court and sits at the wall for the rest of the leg. That's deliberate:
+silently correcting a wrong answer would hide exactly the kind of mistake this
+benchmark exists to surface.
+
+- **Assisted (default):** if the deadline (ball arrival) passes with no answer, or
+  the client reports an error, the shield substitutes the deterministic planner's
+  move and logs it as a **shield intervention** — never as a model decision. While
+  waiting for the leg's answer, the paddle live-tracks the ball via the planner (a
+  free, instant local computation, refreshed every physics tick) rather than sitting
+  frozen - the paddle always moves; it just isn't always the model choosing.
+- **Unassisted** (per-side toggle in the UI): the paddle doesn't even live-track
+  while waiting - it sits completely still until the model actually answers, or holds
+  still forever if the ball arrives first. This exposes a model's raw, unprotected
+  latency with nothing masking it at all.
 
 ## Metrics (`src/stats/metrics.ts`)
 
@@ -164,10 +186,12 @@ latency produces — without the shield's fallback smoothing it over.
 
 ## Reproducibility notes
 
-- The act-deadline is a chosen parameter, not a law of physics — a tighter deadline
-  will show more interventions for _both_ sides; a looser one, fewer. Two runs with
-  different deadlines are not directly comparable. `docs/INTEGRATION.md` documents
-  the current default and the reasoning behind it.
+- The act-deadline is now derived from the court itself (ball distance ÷ speed at
+  the moment a leg begins) rather than a chosen constant, so it's consistent across
+  runs on the same build - but it does still depend on ball speed, which increases
+  slightly per rally hit (a capped ramp - see `src/game/physics.ts`). A long rally
+  gives _shorter_ deadlines on both sides as it goes, another real, physical source
+  of increasing pressure alongside the ball simply being harder to track.
 - Laya's local inference speed depends entirely on the hardware it's run on (CPU vs.
   GPU vs. MLX) — this is not something the software can normalize away, and is
   itself part of what this benchmark is measuring (a slower model has to be that

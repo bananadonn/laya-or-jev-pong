@@ -1,6 +1,6 @@
 import { JevClient } from "./decisions/jevClient";
 import { LayaClient } from "./decisions/layaClient";
-import { DEFAULT_ACT_DEADLINE_MS, Shield, type ShieldEvent } from "./decisions/shield";
+import { Shield, type ShieldEvent } from "./decisions/shield";
 import type { DecisionClient, Move } from "./decisions/types";
 import { GameLoop } from "./game/loop";
 import type { PaddleCommands } from "./game/physics";
@@ -83,7 +83,6 @@ function makeShield(side: Side, client: DecisionClient): Shield {
     () => toPongState(game, side),
     (event) => onShieldEvent(side, event),
     true,
-    DEFAULT_ACT_DEADLINE_MS,
     () => onRequestStart(side),
   );
 }
