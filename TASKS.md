@@ -63,10 +63,10 @@ the repo's module boundaries. Check items off as they're committed — see
       showed the default 150ms act-deadline made the shield intervene almost every cycle for both
       sides, so raised `DEFAULT_ACT_DEADLINE_MS` to 400ms (still tight, but lets Jev's real
       70-500ms latency land often — confirmed 73% agreement, p50=188ms, p95=312ms in one run).
-- [ ] `docs/METHODOLOGY.md`
-- [ ] `docs/PONG_DEMO.md`
-- [ ] `docs/INTEGRATION.md` (incl. the Jev-proxy-for-secrecy deviation from §6's literal "client calls API directly")
-- [ ] `README.md` — real write-up, how to run both servers
+- [x] `docs/METHODOLOGY.md`
+- [x] `docs/PONG_DEMO.md`
+- [x] `docs/INTEGRATION.md` (incl. the Jev-proxy-for-secrecy deviation from §6's literal "client calls API directly")
+- [x] `README.md` — real write-up, how to run both servers
 
 ## Notes / deviations from the literal CLAUDE.md text (flag if you disagree)
 
