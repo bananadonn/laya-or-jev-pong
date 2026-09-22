@@ -54,7 +54,11 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[_allowed_origin],
     allow_methods=["GET", "POST"],
-    allow_headers=["content-type"],
+    # ngrok-skip-browser-warning is a no-op here (this server isn't behind
+    # ngrok) but layaClient.ts sends it on every request regardless of
+    # target, so it must be allowed or the preflight fails and even local
+    # requests get CORS-blocked before they reach this server at all.
+    allow_headers=["content-type", "ngrok-skip-browser-warning"],
 )
 
 

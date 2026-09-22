@@ -109,7 +109,12 @@ Low confidence here is real, measured uncertainty (§2: don't fabricate numbers)
 a bug. If you have GPU or MLX hardware, Laya should be fast enough that the deadline
 barely matters. If you're on CPU and want to see the shield intervene more, lower the
 act-deadline (`Shield`'s constructor / `setActDeadlineMs`) — but doing so will make
-Laya's real decisions rare again, by the same math.
+Laya's real decisions rare again, by the same math. If you don't have compatible GPU
+hardware locally, see "Running Laya on a real GPU (Colab)" below — that's a genuine
+~20x win, unlike thread-count tuning (tried and measured: forcing all logical cores
+via `torch.set_num_threads()` looked like a ~40% win on one lucky sample pair, but
+didn't hold up under a proper randomized, repeated comparison on a 6-core/12-thread
+Ryzen 5 2600 — not worth adding).
 
 **The reference `laya_server.py` doesn't cancel in-flight inference.** `agent.predict()`
 is a blocking call with no cooperative cancellation; if the shield's client-side abort
@@ -122,6 +127,34 @@ one is already in flight rather than queuing unboundedly (see `_predict_lock` in
 that 503) can't turn into a busy-loop hammering the server. If you see repeated 503s
 in the browser console, that's this guard working as intended under real latency
 pressure, not a malfunction.
+
+## Running Laya on a real GPU (Colab)
+
+No CUDA (NVIDIA) or MLX (Apple Silicon) hardware locally? An AMD GPU on Windows, for
+instance, has no supported path — `laya`'s own device selection only recognizes
+`"cuda"` and `"mps"`, falling back to CPU for anything else, and there's no clean way
+to plug DirectML or ROCm into it without forking the library.
+
+`colab/laya_gpu_server.ipynb` runs the exact same model on a free Colab Tesla T4 GPU
+instead — close to the ~40ms Laya's own docs cite, vs. ~900-970ms measured CPU-only.
+Open it in [Google Colab](https://colab.research.google.com/), set the runtime to a
+T4 GPU, and run the cells top to bottom. It needs a free
+[ngrok](https://dashboard.ngrok.com/signup) account (Colab has no public IP of its
+own, so ngrok tunnels the server out to a real HTTPS URL). The last cell prints a
+`VITE_LAYA_BASE_URL` line — paste that into your local `.env` and restart
+`npm run dev:web`. You no longer need `server/laya_server.py` running locally at all;
+`layaClient.ts` talks straight to the tunnel.
+
+Two things specific to this path:
+
+- Free ngrok URLs serve an HTML interstitial to any request with a real browser
+  User-Agent unless it carries an `ngrok-skip-browser-warning` header — `layaClient.ts`
+  already sends this on every request, so it's transparent, but worth knowing if you
+  ever hit the endpoint from `curl` without that header and get HTML back instead of
+  JSON.
+- The tunnel only exists while the Colab notebook cell is running — closing the tab
+  or an idle disconnect kills it, and free-tier ngrok URLs change on every rerun.
+  Fine for active development, not something to leave running unattended.
 
 ## Troubleshooting
 
