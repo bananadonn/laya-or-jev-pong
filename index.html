@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Laya vs. Jev: Pong</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Laya <span style="color: var(--muted)">vs.</span> Jev — Pong</h1>
+      <div id="score">0 – 0</div>
+      <div id="controls">
+        <label><input type="checkbox" id="left-unassisted" /> Laya unassisted</label>
+        <label><input type="checkbox" id="right-unassisted" /> Jev unassisted</label>
+        <button id="restart-btn" type="button">Restart match</button>
+        <button id="reset-stats-btn" type="button">Reset stats</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="side laya" aria-label="Laya panel">
+        <h2>● Laya <span id="left-status" class="status disconnected">not checked</span></h2>
+        <dl>
+          <dt>Last move</dt>
+          <dd id="left-move">—</dd>
+          <dt>Confidence</dt>
+          <dd id="left-confidence">—</dd>
+          <dt>Last latency</dt>
+          <dd id="left-latency">—</dd>
+          <dt>p50 / p95</dt>
+          <dd><span id="left-p50">—</span> / <span id="left-p95">—</span></dd>
+          <dt>Agreement</dt>
+          <dd id="left-agreement">—</dd>
+          <dt>Shield interventions</dt>
+          <dd id="left-interventions">0</dd>
+          <dt>In flight</dt>
+          <dd id="left-inflight">0</dd>
+        </dl>
+        <ul id="left-feed" class="feed"></ul>
+      </section>
+
+      <div id="court-wrap">
+        <canvas id="court" width="800" height="500"></canvas>
+      </div>
+
+      <section class="side jev" aria-label="Jev panel">
+        <h2>● Jev <span id="right-status" class="status disconnected">not checked</span></h2>
+        <dl>
+          <dt>Last move</dt>
+          <dd id="right-move">—</dd>
+          <dt>Confidence</dt>
+          <dd id="right-confidence">—</dd>
+          <dt>Last latency</dt>
+          <dd id="right-latency">—</dd>
+          <dt>p50 / p95</dt>
+          <dd><span id="right-p50">—</span> / <span id="right-p95">—</span></dd>
+          <dt>Agreement</dt>
+          <dd id="right-agreement">—</dd>
+          <dt>Shield interventions</dt>
+          <dd id="right-interventions">0</dd>
+          <dt>In flight</dt>
+          <dd id="right-inflight">0</dd>
+        </dl>
+        <ul id="right-feed" class="feed"></ul>
+      </section>
+    </main>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -16,10 +16,11 @@ the repo's module boundaries. Check items off as they're committed — see
 - [x] `src/game/state.ts` — `GameState`, `PongState` serializer/mirroring
 - [x] `src/game/physics.ts` — pure ball/paddle physics, capped speed ramp
 - [x] `src/game/loop.ts` — fixed-tick loop, decoupled from render/decisions
-- [ ] `src/render/canvas.ts` — court/paddle/ball/score drawing + HUD/log/status DOM hooks
-- [ ] `public/index.html` — canvas + HUD/status/log markup
-- [ ] `src/main.ts` (v1) — wires loop + render, both paddles planner-controlled
-- [ ] Manual check: `npm run dev`, confirm a planner-vs-planner rally renders correctly
+- [x] `src/render/canvas.ts` — court/paddle/ball/score drawing + HUD/log/status DOM hooks
+- [x] `index.html` (repo root, not `public/` — see deviation note) + `public/styles.css`
+- [x] `src/main.ts` (v1) — wires loop + render, both paddles planner-controlled
+- [x] Manual check: `npm run dev`, confirmed via headless-browser screenshots that a
+      planner-vs-planner rally renders and paddles track the ball, no console errors
 
 ## Milestone 2 — Laya local server + client (build first: local, no rate limits)
 
@@ -56,6 +57,9 @@ the repo's module boundaries. Check items off as they're committed — see
 - Real Jev env var is `TYPESAFE_API_KEY` (the actual SDK's default), not
   `JEV_API_KEY` as originally guessed in CLAUDE.md §6/§12 — confirmed against
   the live `@typesafe-ai/sdk` docs.
+- `index.html` lives at the repo root, not `public/index.html` as CLAUDE.md §3
+  lists it — Vite requires the app entry HTML at the project root; `public/`
+  is reserved for static assets copied verbatim (styles.css lives there).
 - `jevClient.ts` does **not** call `api.typesafe.ai` directly from the
   browser. Since `render`/`main` run client-side (canvas + Vite), a bearer
   token used from browser JS would ship inside the bundle. Instead, a Vite

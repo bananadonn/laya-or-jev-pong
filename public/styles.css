@@ -1,0 +1,150 @@
+:root {
+  color-scheme: dark;
+  --laya: #4fd1c5;
+  --jev: #f6ad55;
+  --bg: #05070c;
+  --panel: #101724;
+  --border: #223047;
+  --text: #e2e8f0;
+  --muted: #8a99b3;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family:
+    ui-monospace, "SF Mono", "Cascadia Code", Consolas, monospace;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+header h1 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+  letter-spacing: 0.02em;
+}
+
+#score {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+#controls button,
+#controls label {
+  margin-left: 8px;
+  font-size: 12px;
+}
+
+#controls button {
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+#controls button:hover {
+  border-color: var(--muted);
+}
+
+main {
+  display: grid;
+  grid-template-columns: 300px 1fr 300px;
+  gap: 16px;
+  padding: 16px 20px;
+  align-items: start;
+}
+
+.side {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.side h2 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.side.laya h2 {
+  color: var(--laya);
+}
+.side.jev h2 {
+  color: var(--jev);
+}
+
+.status {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+}
+.status.connected {
+  color: #68d391;
+  border-color: #2f6b4a;
+}
+.status.disconnected {
+  color: #fc8181;
+  border-color: #6b2f2f;
+}
+
+dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 10px;
+  font-size: 12px;
+}
+dt {
+  color: var(--muted);
+}
+dd {
+  margin: 0;
+  text-align: right;
+}
+
+.feed {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  font-size: 11px;
+  max-height: 160px;
+  overflow-y: auto;
+  color: var(--muted);
+}
+.feed-entry {
+  padding: 2px 0;
+  border-bottom: 1px solid var(--border);
+}
+.feed-entry.shield {
+  color: #fc8181;
+}
+
+#court-wrap {
+  display: flex;
+  justify-content: center;
+}
+
+canvas {
+  background: #131a26;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  max-width: 100%;
+}
