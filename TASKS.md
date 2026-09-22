@@ -40,7 +40,11 @@ the repo's module boundaries. Check items off as they're committed — see
 
 - [x] `src/decisions/jevClient.ts` — browser client calling the local `/api/jev/decide` proxy
 - [x] Wire the Jev proxy plugin into `vite.config.ts` (server-side key handling)
-- [ ] **STOP for confirmation**: before wiring a real `TYPESAFE_API_KEY` and making the first live call
+- [x] **CONFIRMED & VERIFIED**: real Jev API call through the local proxy. User added a real
+      `TYPESAFE_API_KEY` to `.env` (gitignored, never committed); `npm run dev:web` + curling
+      `/api/jev/decide` with a synthetic Pong state returned a real `jev-1.13.0` response —
+      `{"choice":"up","confidence":0.68,"probabilities":{"up":0.79,"down":0.1,"stay":0.11}}` — a
+      sensible answer for a ball well above paddle center. Test server stopped after verification.
 
 ## Milestone 4 — shield + planner
 
