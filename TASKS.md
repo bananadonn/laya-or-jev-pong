@@ -48,8 +48,8 @@ the repo's module boundaries. Check items off as they're committed — see
 
 ## Milestone 4 — shield + planner
 
-- [x] `src/decisions/planner.ts` — deterministic ground-truth move
-- [x] `src/decisions/shield.ts` — act-deadline race, assisted/unassisted modes, intervention logging
+- [x] `src/decisions/planner.ts` — deterministic ground-truth move (committed)
+- [x] `src/decisions/shield.ts` — act-deadline race, assisted/unassisted modes, intervention logging (committed)
 - [ ] `src/main.ts` (v2) — swap planner-only control for shielded Laya + Jev clients per side
 
 ## Milestone 5 — stats + docs
