@@ -11,6 +11,7 @@ Run via `npm run dev` (starts this alongside Vite) or directly:
 """
 
 import os
+import threading
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any
@@ -24,6 +25,17 @@ CHECKPOINT = "convaiinnovations/laya"
 CHECKPOINT_SUBFOLDER = "typed-decisions"
 
 _agent = None
+
+# agent.predict() is a blocking, non-reentrant CPU/GPU call. A client that
+# aborts past its act-deadline (shield.ts) only cancels the fetch on its
+# end - this process has no way to interrupt a predict() already in
+# progress, so if callers kept retrying every ~150ms while a single predict()
+# call is genuinely slower than that (very possible on CPU-only hardware -
+# see docs/INTEGRATION.md), abandoned calls would pile up concurrently and
+# exhaust memory. Rather than queue unboundedly, reject a request outright
+# if one is already in flight: the caller gets a fast, honest 503 instead of
+# silently stacking work the shield has already given up on.
+_predict_lock = threading.Lock()
 
 
 @asynccontextmanager
@@ -60,5 +72,10 @@ def health() -> dict[str, Any]:
 def decide(req: DecideRequest) -> dict[str, Any]:
     if _agent is None:
         raise HTTPException(status_code=503, detail="model not loaded yet")
-    result = _agent.predict(req.state, req.questions)
+    if not _predict_lock.acquire(blocking=False):
+        raise HTTPException(status_code=503, detail="a decide request is already in flight")
+    try:
+        result = _agent.predict(req.state, req.questions)
+    finally:
+        _predict_lock.release()
     return {"model": CHECKPOINT_SUBFOLDER, "answers": result["answers"]}
