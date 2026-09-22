@@ -163,8 +163,18 @@ export class Renderer {
 
     el.feed.innerHTML = "";
     for (const entry of data.feed) {
+      // an unassisted cycle that missed its deadline is neither a shield
+      // intervention nor a real answer - it's holding the last known move
+      // with nothing new to report. Render it distinctly so it doesn't
+      // look like a (confidence-less) real decision.
+      const holding =
+        !entry.shieldIntervened && entry.confidence === null && entry.latencyMs === null;
       const li = document.createElement("li");
-      li.className = entry.shieldIntervened ? "feed-entry shield" : "feed-entry";
+      li.className = entry.shieldIntervened
+        ? "feed-entry shield"
+        : holding
+          ? "feed-entry holding"
+          : "feed-entry";
       const time = new Date(entry.timestamp).toLocaleTimeString(undefined, {
         hour12: false,
         minute: "2-digit",
@@ -172,7 +182,9 @@ export class Renderer {
       });
       li.textContent = entry.shieldIntervened
         ? `${time}  shield -> ${entry.move}`
-        : `${time}  ${entry.move}  (${fmtConfidence(entry.confidence)}, ${fmtMs(entry.latencyMs)})`;
+        : holding
+          ? `${time}  holding (no answer yet) -> ${entry.move}`
+          : `${time}  ${entry.move}  (${fmtConfidence(entry.confidence)}, ${fmtMs(entry.latencyMs)})`;
       el.feed.appendChild(li);
     }
   }

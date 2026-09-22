@@ -135,6 +135,10 @@ dd {
 .feed-entry.shield {
   color: #fc8181;
 }
+.feed-entry.holding {
+  color: #ecc94b;
+  font-style: italic;
+}
 
 #court-wrap {
   display: flex;

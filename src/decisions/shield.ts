@@ -44,12 +44,33 @@ export type ShieldListener = (event: ShieldEvent) => void;
  * move or (assisted mode) fall back to the deterministic planner — logged
  * as a shield intervention, never as a model decision (CLAUDE.md §7).
  *
+ * The network/inference call is rate-limited (single-flight, paced retries
+ * on failure - see waitOutCyclePacing) since it costs something real to
+ * make. The *paddle*, in assisted mode, is not: getMove() is called every
+ * physics tick and, while "covering" for a model that hasn't answered yet,
+ * recomputes the planner's move fresh each time against the current ball
+ * position rather than replaying a stale snapshot from whenever the last
+ * cycle happened to resolve. Conflating those two paces was a real bug
+ * caught by actually playing the game - it made even the "safe" fallback
+ * look laggy, for no reason, since the planner has no real latency to pace.
+ *
  * In unassisted mode a late decision does NOT get a planner fallback: the
  * paddle simply holds its last committed move until the model actually
  * answers, exposing the model's raw, unprotected latency/accuracy.
  */
 export class Shield {
   private currentMove: Move = "stay";
+  /**
+   * True whenever there's no fresh-enough real decision to act on (still
+   * waiting on the first one ever, or the last cycle missed its deadline).
+   * While covering, getMove() recomputes the planner's move live against
+   * the *current* state on every call, not a stale snapshot from whenever
+   * the cycle last resolved - the planner is a synchronous, free local
+   * computation, so there's no reason its answer should be any less fresh
+   * than the physics tick calling getMove(). Only real model decisions are
+   * inherently rate-limited by network/inference latency.
+   */
+  private covering = true;
   private running = false;
   private cycleActive = false;
 
@@ -64,6 +85,9 @@ export class Shield {
   ) {}
 
   getMove(): Move {
+    if (this.covering && this.assisted) {
+      return plannerMove(this.getState());
+    }
     return this.currentMove;
   }
 
@@ -108,7 +132,7 @@ export class Shield {
 
     if (race === "deadline") {
       if (this.assisted) {
-        this.currentMove = ground;
+        this.covering = true;
         this.emit({
           source: this.client.source,
           timestamp: Date.now(),
@@ -149,6 +173,7 @@ export class Shield {
     const outcome = race;
     if (outcome.ok) {
       this.currentMove = outcome.result.choice;
+      this.covering = false;
       this.emit({
         source: this.client.source,
         timestamp: Date.now(),
@@ -161,7 +186,7 @@ export class Shield {
       // a real answer arrived - loop again immediately, no pacing floor,
       // so a fast model gets polled as fast as it can genuinely answer.
     } else if (this.assisted) {
-      this.currentMove = ground;
+      this.covering = true;
       this.emit({
         source: this.client.source,
         timestamp: Date.now(),
