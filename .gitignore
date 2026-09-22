@@ -1,0 +1,20 @@
+# secrets — must stay ignored from the first commit
+.env
+.env.local
+*.env
+
+# node
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+
+# python
+server/.venv/
+server/__pycache__/
+server/*.pyc
+server/.ruff_cache/
+
+# logs / exports
+*.log
+/logs/
