@@ -15,9 +15,12 @@ defending differs. `PongState.paddle` includes the paddle's own `x` (always the 
 constant in the mirrored frame, per `PADDLE_MARGIN`) alongside the ball's `x`/`vx` -
 without it a model has the ball's velocity but no way to know its own distance from
 it, which meant it structurally couldn't reason about time-to-intercept even if
-capable of the math. The `instructions` text sent to both models explicitly asks them
-to anticipate where the ball will cross the paddle's x-position using its velocity and
-distance, not just react to where it is on this tick.
+capable of the math.
+
+The `instructions` text itself is deliberately short - "Given the ball's
+position/velocity and this paddle's position, should the paddle move up, down, or
+stay still right now?" See "What the instructions wording actually does" below for
+why a more detailed, physics-explaining version was tried and reverted.
 
 ## The deterministic planner (`src/decisions/planner.ts`)
 
@@ -39,6 +42,48 @@ correspondingly easier to agree with. **Best-move agreement % is not comparable
 across this change**: the same model logic will show a lower agreement rate against
 the trajectory-aware planner than it did against the old one, because the bar for
 "correct" genuinely got higher, not because the models got worse.
+
+## Two real findings from actually testing both models
+
+Reported by the user after noticing both paddles seemed to be missing the ball
+consistently in a specific way - Laya only ever moving down, Jev only ever moving up.
+Investigated directly against both real APIs (not just watching the game) to separate
+"is this our schema/prompt" from "is this the model."
+
+**Jev: the longer, more explicit `instructions` text measurably hurt it.** While
+adding `paddle.x` (above), the instructions were also expanded to explicitly describe
+wall bounces and ask the model to anticipate the ball's arrival point. Queried the
+real API with identical states under both versions: for a ball clearly well above the
+paddle (an unambiguous "move up" case), the short instructions gave `up` at 68-77%
+confidence across repeated calls; the long version gave `stay` at 60-99% confidence -
+confidently wrong, repeatably, not just noisy. A medium-length version (one added
+sentence, no bounce explanation) still degraded it to a near-coinflip. TypeSafe's Jev
+is a "System One" model optimized for fast, calibrated decisions from structured
+state, not chain-of-thought reasoning over a paragraph of physics - stuffing more
+verbal explanation into `instructions` didn't give it more to work with, it diluted
+the signal. Reverted to the original short instructions; `paddle.x` itself stayed,
+since it's structured data the model can just use as another feature, not something
+it has to parse and reason about from prose.
+
+**Laya: the `typed-decisions` checkpoint doesn't discriminate on this task at all.**
+Swept `paddle.y` across the full court (50 / 150 / 250 / 450) with `ball.y` held fixed
+at 250, querying the real model directly: every single response was `down` at
+essentially the same probability (~22-27% up / ~50-53% down / ~24-27% stay) regardless
+of whether the paddle was already above, level with, or below the ball - including the
+paddle.y=450 case, where the ball is far above the paddle and "down" is physically
+nonsensical (there's no more "down" to move into). Retested with all coordinates
+normalized to 0-1 instead of raw pixels, in case a 421M-parameter model just handles
+large integers poorly - same near-constant "down" bias, just slightly less extreme
+(41% instead of 50%). This isn't a schema or prompt problem: the model is essentially
+outputting a fixed prior, independent of the actual geometric input. Since this
+checkpoint was fine-tuned only on ticket-routing/invoice/security-incident
+classification (never anything spatial or Pong-shaped), it appears not to generalize
+to this task at all - it isn't reasoning about the ball's position, it's returning
+something closer to its training-set default. **This is left as-is.** Hand-correcting
+or overriding Laya's real output to look smarter than it actually is would fabricate
+the exact thing CLAUDE.md §2 says not to: an invented number standing in for a real
+one. A near-constant, wrong, low-confidence "down" is Laya's genuine, measured
+performance on this out-of-distribution task, and that's the finding.
 
 ## The safety shield (`src/decisions/shield.ts`)
 

@@ -47,7 +47,7 @@ export class JevClient implements DecisionClient {
             move: {
               type: "choice",
               instructions:
-                "The paddle defends a fixed x-position on a court from y=0 (top) to y=court.height (bottom) and can only move up or down. The ball is at (ball.x, ball.y) moving at (ball.vx, ball.vy) px/s and bounces off the top and bottom walls. Use the ball's velocity and its distance from the paddle to anticipate where it will cross the paddle's x-position - not just where it is right now - then decide whether the paddle should move up, down, or stay still to intercept it.",
+                "Given the ball's position/velocity and this paddle's position, should the paddle move up, down, or stay still right now?",
               criteria: MOVE_CRITERIA,
             },
           },
