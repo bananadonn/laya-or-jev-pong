@@ -50,7 +50,10 @@ the repo's module boundaries. Check items off as they're committed — see
 
 - [x] `src/decisions/planner.ts` — deterministic ground-truth move (committed)
 - [x] `src/decisions/shield.ts` — act-deadline race, assisted/unassisted modes, intervention logging (committed)
-- [ ] `src/main.ts` (v2) — swap planner-only control for shielded Laya + Jev clients per side
+- [x] `src/main.ts` (v2) — swap planner-only control for shielded Laya + Jev clients per side.
+      Verified end-to-end in a headless browser against both real servers; this run surfaced and
+      fixed two real bugs (see commits): unbounded memory growth in laya_server.py from overlapping
+      requests, and a busy-loop in shield.ts when a request fails fast rather than timing out slowly.
 
 ## Milestone 5 — stats + docs
 
