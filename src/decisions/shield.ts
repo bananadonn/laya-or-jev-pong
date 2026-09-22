@@ -82,6 +82,7 @@ export class Shield {
   private async runOneCycle(): Promise<void> {
     if (this.cycleActive) return;
     this.cycleActive = true;
+    const cycleStart = performance.now();
     const state = this.getState();
     const ground = plannerMove(state);
     const controller = new AbortController();
@@ -128,6 +129,7 @@ export class Shield {
       // next cycle, so we never have two in-flight decides for one paddle.
       controller.abort();
       await decidePromise.catch(() => undefined);
+      await this.waitOutCyclePacing(cycleStart);
       this.cycleActive = false;
       return;
     }
@@ -144,6 +146,8 @@ export class Shield {
         shieldIntervened: false,
         outcome,
       });
+      // a real answer arrived - loop again immediately, no pacing floor,
+      // so a fast model gets polled as fast as it can genuinely answer.
     } else if (this.assisted) {
       this.currentMove = ground;
       this.emit({
@@ -155,6 +159,7 @@ export class Shield {
         shieldIntervened: true,
         outcome,
       });
+      await this.waitOutCyclePacing(cycleStart);
     } else {
       this.emit({
         source: this.client.source,
@@ -165,8 +170,25 @@ export class Shield {
         shieldIntervened: false,
         outcome,
       });
+      await this.waitOutCyclePacing(cycleStart);
     }
     this.cycleActive = false;
+  }
+
+  /**
+   * A failed cycle (deadline miss, or an error that happened to settle
+   * fast - e.g. an instant connection refusal or a fast-rejecting server)
+   * must not free the next cycle to fire immediately: without this floor,
+   * a backend that's fast to *fail* turns the retry loop into a busy-spin
+   * hammering it hundreds of times a second while it's still working
+   * through the real, slow request that's actually in flight. Pace failures
+   * to roughly the act-deadline; successes are exempt (see call site).
+   */
+  private async waitOutCyclePacing(cycleStart: number): Promise<void> {
+    const remaining = this.actDeadlineMs - (performance.now() - cycleStart);
+    if (remaining > 0) {
+      await new Promise((resolve) => setTimeout(resolve, remaining));
+    }
   }
 
   private emit(event: ShieldEvent): void {
