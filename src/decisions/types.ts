@@ -1,7 +1,14 @@
-/** State sent to a decision model every tick — CLAUDE.md §5. */
+/**
+ * State sent to a decision model every tick — extends CLAUDE.md §5's
+ * original shape with `paddle.x`. Without it, a model has ball velocity
+ * but no way to know its own position on the court's x-axis, so it can't
+ * compute distance or time-to-intercept even though it technically has
+ * the pieces (§2/§7's reactive judgment needs the paddle's own frame to
+ * be complete, not just the ball's).
+ */
 export interface PongState {
   ball: { x: number; y: number; vx: number; vy: number };
-  paddle: { y: number; height: number };
+  paddle: { x: number; y: number; height: number };
   court: { width: number; height: number };
   speed_tier: number;
 }

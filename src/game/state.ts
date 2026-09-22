@@ -92,7 +92,11 @@ export function toPongState(game: GameState, side: Side): PongState {
       vx: mirrored ? -ball.vx : ball.vx,
       vy: ball.vy,
     },
-    paddle: { y: paddle.y, height: paddle.height },
+    // always PADDLE_MARGIN, never mirrored: the whole point of mirroring
+    // ball.x/vx is that both paddles perceive themselves in the same
+    // canonical "I'm the left paddle" frame, so "my own x" is the same
+    // constant regardless of which physical side is actually asking.
+    paddle: { x: PADDLE_MARGIN, y: paddle.y, height: paddle.height },
     court: { width: court.width, height: court.height },
     speed_tier: speedTier,
   };

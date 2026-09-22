@@ -82,3 +82,13 @@ the repo's module boundaries. Check items off as they're committed — see
   dev-server middleware (`vite.config.ts`) holds the real key server-side and
   exposes `/api/jev/decide` locally; the browser client only ever talks to
   that. Documented in `docs/INTEGRATION.md` once written.
+- `PongState.paddle` in CLAUDE.md §5 is `{ y, height }` — no `x`. Added `x`
+  (always `PADDLE_MARGIN`, the same canonical constant for both sides): a
+  model was given the ball's velocity but no way to know its own distance
+  from it, so it structurally couldn't reason about time-to-intercept even
+  though the task description implied it should. Reported by the user after
+  noticing both models struggled to actually hit the ball. See
+  `docs/METHODOLOGY.md`'s planner section — the planner itself was upgraded
+  at the same time to project the ball's real trajectory (with wall bounces)
+  instead of a flat 50ms smoothing window, which means agreement % is not
+  comparable to numbers from before this change.

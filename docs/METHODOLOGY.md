@@ -11,16 +11,34 @@ Every tick, each paddle's controller is asked one `choice` question over its own
 (side-mirrored) view of the ball and paddle state — see `src/decisions/types.ts` for
 the exact `PongState` shape and `src/game/state.ts#toPongState` for the mirroring.
 Both models answer the identical question shape; only which side of the court they're
-defending differs.
+defending differs. `PongState.paddle` includes the paddle's own `x` (always the same
+constant in the mirrored frame, per `PADDLE_MARGIN`) alongside the ball's `x`/`vx` -
+without it a model has the ball's velocity but no way to know its own distance from
+it, which meant it structurally couldn't reason about time-to-intercept even if
+capable of the math. The `instructions` text sent to both models explicitly asks them
+to anticipate where the ball will cross the paddle's x-position using its velocity and
+distance, not just react to where it is on this tick.
 
 ## The deterministic planner (`src/decisions/planner.ts`)
 
-The ground truth a decision is judged against: purely reactive, comparing the paddle's
-center to the ball's y-position projected 50ms ahead (just enough to smooth reactive
-jitter — not lookahead in the sense CLAUDE.md §2 rules out, since it never reasons
-about future paddle _positioning_, only the immediate next move). It has no access to
-either model's answer and no knowledge of confidence — it's a pure function of the
-current tick's state.
+The ground truth a decision is judged against. Projects the ball's actual trajectory
+forward to the moment it reaches the paddle's x-plane, including however many
+top/bottom wall bounces happen along the way (a closed-form reflection, not a
+simulation loop), then compares that arrival y to the paddle's current position. This
+is still a single-tick reactive judgment, not the "predicting where to position well
+in advance of a return" lookahead CLAUDE.md §2 rules out — it's recomputed from
+scratch every tick with no memory of past answers, and reasons about nothing beyond
+this one incoming ball. CLAUDE.md groups Pong with "reactive games" like Space
+Invaders precisely because trajectory-aware reaction _is_ the reactive judgment the
+task calls for. It has no access to either model's answer and no knowledge of
+confidence — it's a pure function of the current tick's state.
+
+An earlier version of the planner only smoothed the ball's current y by a fixed 50ms,
+regardless of the paddle's actual distance from it or any wall bounces in between -
+correspondingly easier to agree with. **Best-move agreement % is not comparable
+across this change**: the same model logic will show a lower agreement rate against
+the trajectory-aware planner than it did against the old one, because the bar for
+"correct" genuinely got higher, not because the models got worse.
 
 ## The safety shield (`src/decisions/shield.ts`)
 
