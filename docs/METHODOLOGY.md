@@ -19,8 +19,8 @@ capable of the math.
 
 The `instructions` text itself is deliberately short - "Given the ball's
 position/velocity and this paddle's position, should the paddle move up, down, or
-stay still right now?" See "What the instructions wording actually does" below for
-why a more detailed, physics-explaining version was tried and reverted.
+stay still right now?" See "Two real findings from actually testing both models"
+below for why a more detailed, physics-explaining version was tried and reverted.
 
 ## The deterministic planner (`src/decisions/planner.ts`)
 
@@ -84,6 +84,26 @@ or overriding Laya's real output to look smarter than it actually is would fabri
 the exact thing CLAUDE.md §2 says not to: an invented number standing in for a real
 one. A near-constant, wrong, low-confidence "down" is Laya's genuine, measured
 performance on this out-of-distribution task, and that's the finding.
+
+**Jev: correct per-query, but visibly stale by the time it's applied.** After the
+above fix, the user reported Jev's paddle would line up correctly with the ball, then
+move away again right after - as if chasing something that had already moved on.
+Swept `paddle.y` the same way as Laya's test (50/150/250/350/450, `ball.y` fixed at
+250): Jev's answers tracked the true direction correctly at every point - `down` 83%
+when the paddle was above the ball, `stay` 96% when level, `up` 60-62% when below - so
+this isn't a constant-output bias like Laya's. The cause is round-trip latency: a
+`decide()` call captures the ball's position at the _start_ of the request, and a real
+measured round trip took 440ms in one test. At a plausible vertical speed (~300px/s,
+well within this game's range), the ball can move 130+ px - more than the paddle's own
+height - in that window. An answer that was completely correct when asked can be
+stale by the time it's actually committed, and the shield's immediate-retry-on-success
+means it self-corrects within one more round trip, but in an 800x500 court that's
+still enough to visibly overshoot. This is not a bug to fix - it's real network
+latency imposing a real cost on a fast-moving game, which is exactly the tradeoff
+CLAUDE.md §1 asks this benchmark to measure ("does Jev's judgment quality offset its
+far higher hosted latency"). Artificially compensating for it (e.g. discarding a
+stale-but-on-time answer, or extrapolating it forward) would hide the very thing the
+match is supposed to show.
 
 ## The safety shield (`src/decisions/shield.ts`)
 
