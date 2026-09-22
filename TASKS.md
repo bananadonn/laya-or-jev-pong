@@ -28,8 +28,13 @@ the repo's module boundaries. Check items off as they're committed — see
 - [x] `server/laya_server.py` — FastAPI wrapper around `laya` (typed-decisions checkpoint), `/decide` + `/health`, CORS for the Vite origin
 - [x] `src/decisions/types.ts` — shared `DecisionResult`/`DecisionClient`/etc. types (committed earlier)
 - [x] `src/decisions/layaClient.ts` — browser client for the local Laya server
-- [ ] **STOP for confirmation**: first successful real `/decide` round trip against a running local Laya server
-      (requires `pip install -r server/requirements.txt`, which downloads the ~800MB checkpoint — not run yet)
+- [x] **CONFIRMED & VERIFIED**: real `/decide` round trip against a running local Laya server.
+      `pip install -r server/requirements.txt` in `server/.venv`, downloaded the `typed-decisions`
+      checkpoint from Hugging Face, started uvicorn, and curled `/decide` with a synthetic Pong
+      state — got back `{"choice":"down","confidence":0.0123,"probabilities":{...}}`. Low
+      confidence is expected: this checkpoint was fine-tuned on ticket-routing/invoice/security
+      workflows, not Pong, so it's honestly uncertain on a novel domain rather than confidently
+      wrong. Server stopped after verification (not left running).
 
 ## Milestone 3 — Jev client (real hosted API)
 
