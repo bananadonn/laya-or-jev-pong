@@ -15,10 +15,14 @@ export interface DecisionRecord {
   timestamp: number;
   move: Move;
   confidence: number | null;
+  /** full distribution over up/down/stay, when a real decision landed */
+  probabilities: Record<Move, number> | null;
   latencyMs: number | null;
   shieldIntervened: boolean;
   /** did the committed move match the deterministic planner's move this cycle */
   agreedWithPlanner: boolean;
+  /** true if a real answer arrived but was swapped for the planner's move by a disclosed handicap dial */
+  handicapped: boolean;
 }
 
 const DEFAULT_MAX_PER_SIDE = 500;

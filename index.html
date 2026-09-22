@@ -22,6 +22,34 @@
     <main>
       <section class="side laya" aria-label="Laya panel">
         <h2>● Laya <span id="left-status" class="status disconnected">not checked</span></h2>
+
+        <div
+          class="handicap"
+          title="Disclosed artificial assist: this % of the time, a real on-time answer is swapped for the deterministic planner's move before it's committed. Excluded from agreement stats — see docs/METHODOLOGY.md."
+        >
+          <label for="left-handicap">Handicap</label>
+          <input type="range" id="left-handicap" min="0" max="100" value="0" step="5" />
+          <span id="left-handicap-readout">off</span>
+        </div>
+
+        <div class="probs" aria-label="Laya move probabilities">
+          <div class="prob-row" id="left-prob-up-row" data-move="up">
+            <span class="prob-label">UP</span>
+            <div class="prob-track"><div class="prob-fill" id="left-prob-up-fill"></div></div>
+            <span class="prob-pct" id="left-prob-up-pct">—</span>
+          </div>
+          <div class="prob-row" id="left-prob-down-row" data-move="down">
+            <span class="prob-label">DOWN</span>
+            <div class="prob-track"><div class="prob-fill" id="left-prob-down-fill"></div></div>
+            <span class="prob-pct" id="left-prob-down-pct">—</span>
+          </div>
+          <div class="prob-row" id="left-prob-stay-row" data-move="stay">
+            <span class="prob-label">STAY</span>
+            <div class="prob-track"><div class="prob-fill" id="left-prob-stay-fill"></div></div>
+            <span class="prob-pct" id="left-prob-stay-pct">—</span>
+          </div>
+        </div>
+
         <dl>
           <dt>Last move</dt>
           <dd id="left-move">—</dd>
@@ -47,6 +75,34 @@
 
       <section class="side jev" aria-label="Jev panel">
         <h2>● Jev <span id="right-status" class="status disconnected">not checked</span></h2>
+
+        <div
+          class="handicap"
+          title="Disclosed artificial assist: this % of the time, a real on-time answer is swapped for the deterministic planner's move before it's committed. Excluded from agreement stats — see docs/METHODOLOGY.md."
+        >
+          <label for="right-handicap">Handicap</label>
+          <input type="range" id="right-handicap" min="0" max="100" value="0" step="5" />
+          <span id="right-handicap-readout">off</span>
+        </div>
+
+        <div class="probs" aria-label="Jev move probabilities">
+          <div class="prob-row" id="right-prob-up-row" data-move="up">
+            <span class="prob-label">UP</span>
+            <div class="prob-track"><div class="prob-fill" id="right-prob-up-fill"></div></div>
+            <span class="prob-pct" id="right-prob-up-pct">—</span>
+          </div>
+          <div class="prob-row" id="right-prob-down-row" data-move="down">
+            <span class="prob-label">DOWN</span>
+            <div class="prob-track"><div class="prob-fill" id="right-prob-down-fill"></div></div>
+            <span class="prob-pct" id="right-prob-down-pct">—</span>
+          </div>
+          <div class="prob-row" id="right-prob-stay-row" data-move="stay">
+            <span class="prob-label">STAY</span>
+            <div class="prob-track"><div class="prob-fill" id="right-prob-stay-fill"></div></div>
+            <span class="prob-pct" id="right-prob-stay-pct">—</span>
+          </div>
+        </div>
+
         <dl>
           <dt>Last move</dt>
           <dd id="right-move">—</dd>
@@ -66,6 +122,15 @@
         <ul id="right-feed" class="feed"></ul>
       </section>
     </main>
+
+    <section id="chart-section">
+      <h2>Answer time per move, ms</h2>
+      <svg id="latency-chart" viewBox="0 0 800 160" preserveAspectRatio="none"></svg>
+      <div class="chart-legend">
+        <span class="legend-swatch legend-laya"></span>Laya
+        <span class="legend-swatch legend-jev"></span>Jev
+      </div>
+    </section>
 
     <script type="module" src="/src/main.ts"></script>
   </body>

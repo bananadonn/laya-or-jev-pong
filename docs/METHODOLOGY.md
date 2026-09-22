@@ -184,6 +184,40 @@ that safety net off for whichever side you flip it on for, so you can watch that
 side's raw capability — including whatever visible lag or missed returns its real
 latency produces — without the shield's fallback smoothing it over.
 
+## The handicap dial — a disclosed artificial assist, not a capability finding
+
+After exhausting every prompting approach we could think of (see "Two real findings"
+above, and the extended investigation this links to), Laya's real, measured
+performance on this task stayed close to random with very low confidence. The
+handicap dial exists to answer a different, explicitly acknowledged question: not
+"how good is Laya," but **"how large an artificial assist would it take to make Laya
+competitive with Jev's real performance."**
+
+Mechanically: per side, a 0–100% slider. When a real, on-time answer arrives, that %
+of the time it is silently swapped for the deterministic planner's move _before_
+being committed to the paddle — everything else about the cycle (the real API call,
+its real latency, its real confidence and probabilities) still happens and is still
+shown. The swap is disclosed everywhere it matters:
+
+- The decision feed marks a swapped cycle as `handicap -> <move> (model said
+otherwise)`, visually distinct from both a real answer and a shield intervention.
+- **Best-move agreement % excludes handicapped cycles from both the numerator and
+  denominator.** A swapped cycle is the planner agreeing with itself, not the model
+  demonstrating judgment — counting it would just be measuring the dial position.
+- The move-probability display (the three UP/DOWN/STAY bars) always highlights the
+  model's own real top choice, never the swapped one — so it's possible to watch the
+  probabilities say "down" while the paddle visibly moves "up," which is the point:
+  the gap between the two _is_ the handicap made visible.
+- The score and rally outcomes **do** reflect the swap, since that's the actual
+  question being asked — does artificially propping up Laya's decisions produce a
+  competitive match.
+
+This is fundamentally different from every prompting technique tried earlier in this
+investigation. Those attempted (and failed) to get Laya's own weights to produce a
+better answer. The handicap dial doesn't attempt that at all — it's an explicit,
+visible substitution, off by default, and never silently blended into the numbers
+that are supposed to represent real model judgment.
+
 ## Reproducibility notes
 
 - The act-deadline is now derived from the court itself (ball distance ÷ speed at

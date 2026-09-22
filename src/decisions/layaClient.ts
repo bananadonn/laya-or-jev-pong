@@ -1,5 +1,6 @@
 import {
   MOVE_CHOICES,
+  normalizeProbabilities,
   type DecisionClient,
   type DecisionOutcome,
   type Move,
@@ -78,7 +79,13 @@ export class LayaClient implements DecisionClient {
 
       return {
         ok: true,
-        result: { choice: answer.choice, confidence: answer.confidence, latencyMs, source: "laya" },
+        result: {
+          choice: answer.choice,
+          confidence: answer.confidence,
+          probabilities: normalizeProbabilities(answer.probabilities),
+          latencyMs,
+          source: "laya",
+        },
       };
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") {

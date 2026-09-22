@@ -5,28 +5,41 @@
  * decisions/, enforced by the no-restricted-imports ESLint rule.
  */
 
+export type MoveName = "up" | "down" | "stay";
+
 export interface DecisionFeedEntry {
   timestamp: number;
   move: string;
   confidence: number | null;
   latencyMs: number | null;
   shieldIntervened: boolean;
+  handicapped: boolean;
 }
 
 export interface HudSideData {
   label: string;
   connected: boolean;
   connectionDetail: string;
+  /** what actually happened to the paddle - may be handicap-substituted */
   lastMove: string;
+  /** the model's own real pick - drives which probability bar highlights as chosen, never substituted */
+  lastRealChoice: MoveName | null;
   lastConfidence: number | null;
   lastLatencyMs: number | null;
+  /** full distribution for the 3-bar display; null until a first real answer lands */
+  lastProbabilities: Record<MoveName, number> | null;
   agreementPct: number | null;
   shieldInterventions: number;
   requestsInFlight: number;
+  handicapPct: number;
+  handicappedCount: number;
   latencyP50: number | null;
   latencyP95: number | null;
   feed: readonly DecisionFeedEntry[];
 }
+
+/** (timestamp, latencyMs) pairs for the answer-time-over-time chart, most recent last. */
+export type LatencySeries = readonly { timestamp: number; latencyMs: number }[];
 
 export interface RenderFrame {
   court: { width: number; height: number };
@@ -37,6 +50,7 @@ export interface RenderFrame {
   };
   score: { left: number; right: number };
   hud: { left: HudSideData; right: HudSideData };
+  latencyChart: { left: LatencySeries; right: LatencySeries };
 }
 
 const PADDLE_MARGIN = 24;
@@ -49,6 +63,7 @@ const COLORS = {
   jev: "#f6ad55",
   text: "#e2e8f0",
 };
+const MOVES: readonly MoveName[] = ["up", "down", "stay"];
 
 function fmtMs(ms: number | null): string {
   return ms === null ? "—" : `${ms.toFixed(0)}ms`;
@@ -65,6 +80,7 @@ function fmtConfidence(c: number | null): string {
 export class Renderer {
   private readonly ctx: CanvasRenderingContext2D;
   private readonly sideEls: Record<"left" | "right", HudElements>;
+  private readonly chartSvg: SVGSVGElement | null;
 
   constructor(private readonly canvas: HTMLCanvasElement) {
     const ctx = canvas.getContext("2d");
@@ -74,6 +90,7 @@ export class Renderer {
       left: queryHudElements("left"),
       right: queryHudElements("right"),
     };
+    this.chartSvg = document.getElementById("latency-chart") as SVGSVGElement | null;
   }
 
   draw(frame: RenderFrame): void {
@@ -81,6 +98,7 @@ export class Renderer {
     this.updateHud("left", frame.hud.left);
     this.updateHud("right", frame.hud.right);
     this.updateScore(frame.score);
+    this.updateLatencyChart(frame.latencyChart);
   }
 
   private drawCourt(frame: RenderFrame): void {
@@ -160,6 +178,10 @@ export class Renderer {
     el.inFlight.textContent = String(data.requestsInFlight);
     el.p50.textContent = fmtMs(data.latencyP50);
     el.p95.textContent = fmtMs(data.latencyP95);
+    el.handicapReadout.textContent =
+      data.handicapPct > 0 ? `${data.handicapPct}% (used ${data.handicappedCount}x)` : "off";
+
+    this.updateProbabilityBars(el, data);
 
     el.feed.innerHTML = "";
     for (const entry of data.feed) {
@@ -168,13 +190,18 @@ export class Renderer {
       // with nothing new to report. Render it distinctly so it doesn't
       // look like a (confidence-less) real decision.
       const holding =
-        !entry.shieldIntervened && entry.confidence === null && entry.latencyMs === null;
+        !entry.shieldIntervened &&
+        !entry.handicapped &&
+        entry.confidence === null &&
+        entry.latencyMs === null;
       const li = document.createElement("li");
       li.className = entry.shieldIntervened
         ? "feed-entry shield"
-        : holding
-          ? "feed-entry holding"
-          : "feed-entry";
+        : entry.handicapped
+          ? "feed-entry handicap"
+          : holding
+            ? "feed-entry holding"
+            : "feed-entry";
       const time = new Date(entry.timestamp).toLocaleTimeString(undefined, {
         hour12: false,
         minute: "2-digit",
@@ -182,12 +209,108 @@ export class Renderer {
       });
       li.textContent = entry.shieldIntervened
         ? `${time}  shield -> ${entry.move}`
-        : holding
-          ? `${time}  holding (no answer yet) -> ${entry.move}`
-          : `${time}  ${entry.move}  (${fmtConfidence(entry.confidence)}, ${fmtMs(entry.latencyMs)})`;
+        : entry.handicapped
+          ? `${time}  handicap -> ${entry.move} (model said otherwise)`
+          : holding
+            ? `${time}  holding (no answer yet) -> ${entry.move}`
+            : `${time}  ${entry.move}  (${fmtConfidence(entry.confidence)}, ${fmtMs(entry.latencyMs)})`;
       el.feed.appendChild(li);
     }
   }
+
+  private updateProbabilityBars(el: HudElements, data: HudSideData): void {
+    const probs = data.lastProbabilities;
+    for (const move of MOVES) {
+      const row = el.probRows[move];
+      const pct = probs ? probs[move] * 100 : 0;
+      row.fill.style.width = `${Math.max(0, Math.min(100, pct)).toFixed(1)}%`;
+      row.pct.textContent = probs ? `${pct.toFixed(0)}%` : "—";
+      const chosen = probs !== null && data.lastRealChoice === move;
+      row.row.classList.toggle("chosen", chosen);
+    }
+  }
+
+  private updateLatencyChart(chart: RenderFrame["latencyChart"]): void {
+    const svg = this.chartSvg;
+    if (!svg) return;
+    const width = 800;
+    const height = 160;
+    const padding = { top: 10, right: 10, bottom: 20, left: 36 };
+    const plotW = width - padding.left - padding.right;
+    const plotH = height - padding.top - padding.bottom;
+
+    const allLatencies = [...chart.left, ...chart.right].map((p) => p.latencyMs);
+    const maxLatency = Math.max(100, ...allLatencies) * 1.1;
+
+    svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+    svg.innerHTML = "";
+
+    // y-axis gridlines + labels
+    const gridLines = 4;
+    for (let i = 0; i <= gridLines; i++) {
+      const y = padding.top + (plotH / gridLines) * i;
+      const value = maxLatency * (1 - i / gridLines);
+      svg.appendChild(
+        svgEl("line", {
+          x1: String(padding.left),
+          y1: String(y),
+          x2: String(width - padding.right),
+          y2: String(y),
+          stroke: "#223047",
+          "stroke-width": "1",
+        }),
+      );
+      svg.appendChild(
+        svgEl(
+          "text",
+          { x: "2", y: String(y + 3), fill: "#8a99b3", "font-size": "9" },
+          `${value.toFixed(0)}`,
+        ),
+      );
+    }
+
+    this.drawLatencySeries(svg, chart.left, COLORS.laya, padding, plotW, plotH, maxLatency);
+    this.drawLatencySeries(svg, chart.right, COLORS.jev, padding, plotW, plotH, maxLatency);
+  }
+
+  private drawLatencySeries(
+    svg: SVGSVGElement,
+    series: LatencySeries,
+    color: string,
+    padding: { top: number; right: number; bottom: number; left: number },
+    plotW: number,
+    plotH: number,
+    maxLatency: number,
+  ): void {
+    if (series.length === 0) return;
+    const n = series.length;
+    const points = series.map((p, i) => {
+      const x = padding.left + (n === 1 ? 0 : (plotW / (n - 1)) * i);
+      const y = padding.top + plotH - (p.latencyMs / maxLatency) * plotH;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    });
+
+    svg.appendChild(
+      svgEl("polyline", {
+        points: points.join(" "),
+        fill: "none",
+        stroke: color,
+        "stroke-width": "1.5",
+        "stroke-opacity": "0.85",
+      }),
+    );
+    for (const pt of points) {
+      const [x, y] = pt.split(",");
+      svg.appendChild(svgEl("circle", { cx: x ?? "0", cy: y ?? "0", r: "2", fill: color }));
+    }
+  }
+}
+
+function svgEl(tag: string, attrs: Record<string, string>, text?: string): SVGElement {
+  const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  if (text !== undefined) el.textContent = text;
+  return el;
 }
 
 interface HudElements {
@@ -198,9 +321,11 @@ interface HudElements {
   agreement: HTMLElement;
   interventions: HTMLElement;
   inFlight: HTMLElement;
+  handicapReadout: HTMLElement;
   p50: HTMLElement;
   p95: HTMLElement;
   feed: HTMLElement;
+  probRows: Record<MoveName, { row: HTMLElement; fill: HTMLElement; pct: HTMLElement }>;
 }
 
 function must(id: string): HTMLElement {
@@ -210,6 +335,14 @@ function must(id: string): HTMLElement {
 }
 
 function queryHudElements(side: "left" | "right"): HudElements {
+  const probRows = {} as HudElements["probRows"];
+  for (const move of MOVES) {
+    probRows[move] = {
+      row: must(`${side}-prob-${move}-row`),
+      fill: must(`${side}-prob-${move}-fill`),
+      pct: must(`${side}-prob-${move}-pct`),
+    };
+  }
   return {
     status: must(`${side}-status`),
     move: must(`${side}-move`),
@@ -218,8 +351,10 @@ function queryHudElements(side: "left" | "right"): HudElements {
     agreement: must(`${side}-agreement`),
     interventions: must(`${side}-interventions`),
     inFlight: must(`${side}-inflight`),
+    handicapReadout: must(`${side}-handicap-readout`),
     p50: must(`${side}-p50`),
     p95: must(`${side}-p95`),
     feed: must(`${side}-feed`),
+    probRows,
   };
 }

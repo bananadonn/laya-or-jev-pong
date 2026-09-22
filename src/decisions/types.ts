@@ -17,12 +17,25 @@ export type Move = "up" | "down" | "stay";
 
 export const MOVE_CHOICES: readonly Move[] = ["up", "down", "stay"];
 
+/** Normalizes a loosely-typed API response's probability map into a strict, complete one. */
+export function normalizeProbabilities(
+  raw: Record<string, number> | undefined,
+): Record<Move, number> {
+  return {
+    up: raw?.up ?? 0,
+    down: raw?.down ?? 0,
+    stay: raw?.stay ?? 0,
+  };
+}
+
 export type Source = "jev" | "laya";
 
 /** Normalized response shape both clients resolve to — CLAUDE.md §5. */
 export interface DecisionResult {
   choice: Move;
   confidence: number; // 0-1
+  /** the full distribution both real APIs return alongside the winning choice */
+  probabilities: Record<Move, number>;
   latencyMs: number;
   source: Source;
 }

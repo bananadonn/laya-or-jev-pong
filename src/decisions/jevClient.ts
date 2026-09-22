@@ -1,5 +1,6 @@
 import {
   MOVE_CHOICES,
+  normalizeProbabilities,
   type DecisionClient,
   type DecisionOutcome,
   type Move,
@@ -88,6 +89,7 @@ export class JevClient implements DecisionClient {
         result: {
           choice: answer.choice,
           confidence: answer.confidence,
+          probabilities: normalizeProbabilities(answer.probabilities),
           latencyMs,
           source: "jev",
         },

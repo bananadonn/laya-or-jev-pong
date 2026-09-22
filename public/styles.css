@@ -139,6 +139,9 @@ dd {
   color: #ecc94b;
   font-style: italic;
 }
+.feed-entry.handicap {
+  color: #d6a4f5;
+}
 
 #court-wrap {
   display: flex;
@@ -150,4 +153,116 @@ canvas {
   border: 1px solid var(--border);
   border-radius: 8px;
   max-width: 100%;
+}
+
+.handicap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+.handicap input[type="range"] {
+  flex: 1;
+  accent-color: #d6a4f5;
+}
+#left-handicap-readout,
+#right-handicap-readout {
+  min-width: 6ch;
+  text-align: right;
+  color: #d6a4f5;
+}
+
+.probs {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.prob-row {
+  display: grid;
+  grid-template-columns: 36px 1fr 34px;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.prob-label {
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+.prob-track {
+  height: 8px;
+  background: #0b1220;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.prob-fill {
+  height: 100%;
+  width: 0%;
+  background: #3a4a63;
+  transition:
+    width 0.15s ease,
+    background-color 0.15s ease;
+}
+.prob-pct {
+  text-align: right;
+}
+.side.laya .prob-row.chosen .prob-fill {
+  background: var(--laya);
+}
+.side.jev .prob-row.chosen .prob-fill {
+  background: var(--jev);
+}
+.side.laya .prob-row.chosen .prob-label,
+.side.laya .prob-row.chosen .prob-pct {
+  color: var(--laya);
+}
+.side.jev .prob-row.chosen .prob-label,
+.side.jev .prob-row.chosen .prob-pct {
+  color: var(--jev);
+}
+
+#chart-section {
+  margin: 0 20px 20px;
+  padding: 14px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+#chart-section h2 {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+#latency-chart {
+  width: 100%;
+  height: 160px;
+  display: block;
+}
+.chart-legend {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--muted);
+  display: flex;
+  gap: 16px;
+}
+.legend-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+.legend-laya {
+  background: var(--laya);
+}
+.legend-jev {
+  background: var(--jev);
 }

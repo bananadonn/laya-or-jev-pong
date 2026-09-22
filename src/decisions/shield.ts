@@ -22,6 +22,16 @@ export interface ShieldEvent {
   decision: DecisionResult | null;
   /** true when the ball reached the paddle before an answer landed, and the shield covered instead */
   shieldIntervened: boolean;
+  /**
+   * true when a real, on-time model answer arrived but was overridden by
+   * the planner's move anyway, per the disclosed handicap dial
+   * (Shield#setHandicapPct). `decision` still holds the model's real,
+   * un-substituted answer for transparency - only `committedMove` reflects
+   * the override. Excluded from agreement stats: this is not the model's
+   * own judgment landing correctly, it's an artificial assist standing in
+   * for it.
+   */
+  handicapped: boolean;
   outcome: DecisionOutcome | { ok: false; reason: "unassisted-late"; detail: string };
 }
 
@@ -70,6 +80,15 @@ export class Shield {
    * making it look "still active" when it's actually two legs stale.
    */
   private legId = 0;
+  /**
+   * 0-100. When a real answer arrives on time, this is the % chance it
+   * gets silently swapped for the planner's move before being committed -
+   * a disclosed, deliberate handicap (never the default), not a hidden
+   * behavior. See the `handicapped` field on ShieldEvent for how this
+   * stays visible in the feed/stats rather than being laundered into
+   * looking like a genuine model answer.
+   */
+  private handicapPct = 0;
 
   constructor(
     private readonly client: DecisionClient,
@@ -105,6 +124,10 @@ export class Shield {
 
   setAssisted(assisted: boolean): void {
     this.assisted = assisted;
+  }
+
+  setHandicapPct(pct: number): void {
+    this.handicapPct = Math.min(100, Math.max(0, pct));
   }
 
   start(): void {
@@ -171,6 +194,7 @@ export class Shield {
           plannerMove: ground,
           decision: null,
           shieldIntervened: true,
+          handicapped: false,
           outcome: {
             ok: false,
             reason: "timeout",
@@ -186,6 +210,7 @@ export class Shield {
           plannerMove: ground,
           decision: null,
           shieldIntervened: false,
+          handicapped: false,
           outcome: {
             ok: false,
             reason: "unassisted-late",
@@ -200,17 +225,20 @@ export class Shield {
 
     const outcome = race;
     if (outcome.ok) {
+      const handicapped = this.handicapPct > 0 && Math.random() * 100 < this.handicapPct;
+      const finalMove = handicapped ? ground : outcome.result.choice;
       if (stillCurrentLeg) {
-        this.modelDirection = outcome.result.choice;
+        this.modelDirection = finalMove;
         this.covering = false;
       }
       this.emit({
         source: this.client.source,
         timestamp: Date.now(),
-        committedMove: outcome.result.choice,
+        committedMove: finalMove,
         plannerMove: ground,
         decision: outcome.result,
         shieldIntervened: false,
+        handicapped,
         outcome,
       });
     } else if (this.assisted) {
@@ -221,6 +249,7 @@ export class Shield {
         plannerMove: ground,
         decision: null,
         shieldIntervened: true,
+        handicapped: false,
         outcome,
       });
     } else {
@@ -231,6 +260,7 @@ export class Shield {
         plannerMove: ground,
         decision: null,
         shieldIntervened: false,
+        handicapped: false,
         outcome,
       });
     }
