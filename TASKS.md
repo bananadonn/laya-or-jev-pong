@@ -38,8 +38,8 @@ the repo's module boundaries. Check items off as they're committed — see
 
 ## Milestone 3 — Jev client (real hosted API)
 
-- [ ] `src/decisions/jevClient.ts` — browser client calling the local `/api/jev/decide` proxy
-- [ ] Wire the Jev proxy plugin into `vite.config.ts` (server-side key handling)
+- [x] `src/decisions/jevClient.ts` — browser client calling the local `/api/jev/decide` proxy
+- [x] Wire the Jev proxy plugin into `vite.config.ts` (server-side key handling)
 - [ ] **STOP for confirmation**: before wiring a real `TYPESAFE_API_KEY` and making the first live call
 
 ## Milestone 4 — shield + planner
