@@ -182,6 +182,26 @@ document.getElementById("reset-stats-btn")?.addEventListener("click", () => {
   render();
 });
 
+let paused = false;
+document.getElementById("pause-btn")?.addEventListener("click", (e) => {
+  paused = !paused;
+  const btn = e.currentTarget as HTMLButtonElement;
+  if (paused) {
+    // stop the physics loop *and* both shields - pausing should also stop
+    // burning real API calls/inference while nobody's watching, not just
+    // freeze the picture.
+    loop.stop();
+    shields.left.stop();
+    shields.right.stop();
+    btn.textContent = "Resume";
+  } else {
+    loop.start();
+    shields.left.start();
+    shields.right.start();
+    btn.textContent = "Pause";
+  }
+});
+
 document.getElementById("left-unassisted")?.addEventListener("change", (e) => {
   shields.left.setAssisted(!(e.target as HTMLInputElement).checked);
 });
