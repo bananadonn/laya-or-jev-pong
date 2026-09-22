@@ -57,9 +57,12 @@ the repo's module boundaries. Check items off as they're committed — see
 
 ## Milestone 5 — stats + docs
 
-- [ ] `src/stats/metrics.ts` — agreement rate, latency p50/p95, shield-intervention rate, requests-in-flight
-- [ ] `src/stats/log.ts` — structured per-tick decision log + export
-- [ ] `src/main.ts` (v3) — wire stats into HUD + decision feed
+- [x] `src/stats/metrics.ts` — agreement rate, latency p50/p95, shield-intervention rate, requests-in-flight
+- [x] `src/stats/log.ts` — structured per-tick decision log + export
+- [x] `src/main.ts` (v3) — wire stats into HUD + decision feed. Verified end-to-end; this run
+      showed the default 150ms act-deadline made the shield intervene almost every cycle for both
+      sides, so raised `DEFAULT_ACT_DEADLINE_MS` to 400ms (still tight, but lets Jev's real
+      70-500ms latency land often — confirmed 73% agreement, p50=188ms, p95=312ms in one run).
 - [ ] `docs/METHODOLOGY.md`
 - [ ] `docs/PONG_DEMO.md`
 - [ ] `docs/INTEGRATION.md` (incl. the Jev-proxy-for-secrecy deviation from §6's literal "client calls API directly")

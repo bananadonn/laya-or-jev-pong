@@ -8,7 +8,19 @@ import type {
   Source,
 } from "./types";
 
-export const DEFAULT_ACT_DEADLINE_MS = 150;
+/**
+ * 400ms: loose enough that Jev's real hosted latency (70-500ms per
+ * TypeSafe's own docs) lands inside it often, not just at the lucky edge -
+ * a tighter deadline (150ms, tried during development) meant the shield
+ * intervened for both sides almost every single cycle, which technically
+ * "works" but defeats the point of a demo meant to show real decisions
+ * landing (CLAUDE.md §8). Still tight enough to matter: CPU-only Laya
+ * inference measured ~900ms locally during development, so it will still
+ * miss this deadline often on modest hardware - which is itself a real,
+ * honest finding about the speed/accuracy tradeoff this benchmark exists
+ * to surface, not something to hide by inflating the deadline further.
+ */
+export const DEFAULT_ACT_DEADLINE_MS = 400;
 
 export interface ShieldEvent {
   source: Source;
