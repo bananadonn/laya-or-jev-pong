@@ -113,7 +113,11 @@ export class JevClient implements DecisionClient {
       const res = await fetch(ENDPOINT, {
         method: "POST",
         signal: controller.signal,
-        body: "{}",
+        // deliberately no state/questions (this probe isn't a real decide
+        // call) - but always a valid timeoutMs. The proxy now defends
+        // against a missing one too, but this avoids relying on that
+        // alone (see the comment on DEFAULT_PROXY_TIMEOUT_MS in vite.config.ts).
+        body: JSON.stringify({ timeoutMs: CONNECT_CHECK_TIMEOUT_MS }),
       }).finally(() => clearTimeout(timer));
       // any response (even a 4xx from a malformed probe body) means the proxy
       // + upstream key are wired up; only a network failure means "down".
